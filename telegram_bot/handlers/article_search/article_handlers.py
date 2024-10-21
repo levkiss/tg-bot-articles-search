@@ -42,7 +42,16 @@ async def actions(dialog_manager: DialogManager, **kwargs) -> Dict[str, Any]:
         Dict[str, Any]: Product information for the current index
     """
     index = dialog_manager.dialog_data.get("index", 0)
-    return await get_article_by_index(index)
+    article = await get_article_by_index(index)
+    state = dialog_manager.current_context().state
+
+    html_text = (
+        f"<b>{article['title']}</b>\n\n{article['summary']}"
+        if state == ArticleSG.summary
+        else f"<b>{article['title']}</b>\n\n{article['abstract']}"
+    )
+
+    return {**article, "html_text": html_text}
 
 async def previous_article(c: Any, b: Any, dialog_manager: DialogManager) -> None:
     """
@@ -70,7 +79,7 @@ async def next_article(c: Any, b: Any, dialog_manager: DialogManager) -> None:
     dialog_manager.dialog_data["index"] = index+1 if index < len(articles)-1 else 0
     await dialog_manager.switch_to(ArticleSG.abstract)
 
-async def read_full_article(c: Any, b: Any, dialog_manager: DialogManager) -> None:
+async def read_article_summary(c: Any, b: Any, dialog_manager: DialogManager) -> None:
     """
     Args:
         c (Any): Callback query
