@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database service
+  postgres:
+    image: postgres:14
+    container_name: telegram_bot_postgres
+    restart: unless-stopped
+    env_file:
+      - .env  # Load environment variables for Postgres
+    environment:
+      #POSTGRES_USER: ${POSTGRES_USER}
+      #POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${PG_PORT}:${PG_PORT}"
+    volumes:
+      - ./data/postgres_db_data:/var/lib/postgresql/data
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for storing finite state machine (FSM) data
+  redis:
+    image: redis:6.2
+    container_name: telegram_bot_redis
+    restart: unless-stopped
+    env_file:
+      - .env  # Load environment variables for Redis
+    environment:
+      REDIS_PASSWORD: ${FSM_PASSWORD}
+    ports:
+      - "${FSM_PORT}:6379"
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "127.0.0.1", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["redis-server", "--requirepass", "${FSM_PASSWORD}"]
+
+  # Telegram bot service
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_bot_app
+    restart: unless-stopped
+    env_file:
+      - .env  # Load environment variables for the bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      PG_HOST: postgres
+      PG_PORT: ${PG_PORT}
+      PG_DATABASE: ${PG_DATABASE}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      FSM_HOST: redis
+      FSM_PORT: ${FSM_PORT}
+      FSM_PASSWORD: ${FSM_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./telegram_bot:/usr/src
+    networks:
+      - bot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8443/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Define the volumes for persisting PostgreSQL data
+volumes:
+  postgres_data:
+
+# Define a shared network for the services
+networks:
+  bot_network:
+    driver: bridge
