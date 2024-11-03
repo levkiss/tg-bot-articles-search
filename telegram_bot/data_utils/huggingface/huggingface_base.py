@@ -2,6 +2,7 @@ import logging
 import asyncio
 import aiohttp
 import ssl
+from datetime import datetime
 from typing import List, Dict, Optional
 
 class HuggingFaceAPI:
@@ -11,7 +12,7 @@ class HuggingFaceAPI:
 
     def __init__(self):
         self.base_url = "https://huggingface.co/api"
-        self.daily_papers_endpoint = f"{self.base_url}/daily_papers"
+        self.papers_endpoint = f"{self.base_url}/daily_papers"
         self.papers_data: List[Dict[str, str]] = []
         self.logger = logging.getLogger(__name__)
         self.ssl_context = ssl.create_default_context()
@@ -77,19 +78,20 @@ class HuggingFaceAPI:
             self.logger.error(f"An error occurred while processing the paper content from {paper_url}: {e}")
             return None
 
-    async def fetch_daily_papers(self) -> None:
+    async def fetch_papers_for_date(self, date_str: str) -> List[Dict[str, str]]:
         """
-        Asynchronously fetches daily papers from the Hugging Face API and stores them in the class attribute.
-
+        Asynchronously fetches papers for a specific date from the Hugging Face API.
+        
         Args:
-            None
-
+            date_str (str): Date in YYYY-MM-DD format (e.g., "2024-10-31")
+        
         Returns:
-            None
+            List[Dict[str, str]]: List of processed papers data
         """
         try:
+            url = f"{self.papers_endpoint}?date={date_str}"
             async with aiohttp.ClientSession() as session:
-                async with session.get(self.daily_papers_endpoint, ssl=self.ssl_context) as response:
+                async with session.get(url, ssl=self.ssl_context) as response:
                     response.raise_for_status()
                     raw_data = await response.json()
                 
@@ -97,12 +99,21 @@ class HuggingFaceAPI:
                 for paper_data in raw_data:
                     tasks.append(self.process_paper(session, paper_data))
                 
-                self.papers_data = await asyncio.gather(*tasks)
+                papers_data = await asyncio.gather(*tasks)
             
-            self.logger.info(f"Successfully fetched and processed {len(self.papers_data)} daily papers")
+            self.logger.info(f"Successfully fetched and processed {len(papers_data)} papers for date {date_str}")
+            return papers_data
         except aiohttp.ClientError as e:
-            self.logger.error(f"Error fetching daily papers: {e}")
-            self.papers_data = []
+            self.logger.error(f"Error fetching papers for date {date_str}: {e}")
+            return []
+
+    async def fetch_daily_papers(self) -> None:
+        """
+        Wrapper method to fetch today's papers.
+        """
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+        await self.fetch_papers_for_date(today)
 
     async def process_paper(self, session: aiohttp.ClientSession, paper_data: Dict) -> Dict[str, str]:
         """
@@ -116,24 +127,24 @@ class HuggingFaceAPI:
             Dict[str, str]: A dictionary containing the paper's URL, title, authors, abstract, and other relevant information
         """
         paper_id = paper_data['paper']['id']
-        paper_url = f"https://huggingface.co/papers/{paper_id}"
+        paper_url = f"https://arxiv.org/pdf/{paper_id}"
         
         # Extract authors
         authors = ", ".join([author['name'] for author in paper_data['paper']['authors'] if not author.get('hidden', False)])
-        
+
         return {
             'id': paper_id,
             'url': paper_url,
             'title': paper_data['paper']['title'],
             'authors': authors,
             'abstract': paper_data['paper']['summary'],
-            'published_at': paper_data['paper']['publishedAt'],
+            'paper_published_at': datetime.strptime(paper_data['paper']['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ"),
+            'published_at': datetime.strptime(paper_data['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ"),
             'upvotes': str(paper_data['paper']['upvotes']),
             'num_comments': str(paper_data.get('numComments', 0)),
             'thumbnail': paper_data.get('thumbnail', ''),
             'media_urls': ", ".join(paper_data.get('mediaUrls', [])),
-            'submitted_by': paper_data['submittedBy']['fullname'],
-            'summary': "still in development((" #await self.get_paper_content(paper_url)
+            'submitted_by': paper_data['submittedBy']['fullname']
         }
 
     async def get_paper_abstract(self, session: aiohttp.ClientSession, paper_id: str) -> Optional[str]:
@@ -163,31 +174,15 @@ class HuggingFaceAPI:
             self.logger.error(f"Error retrieving abstract for paper {paper_id}: {e}")
             return None
 
-    # async def get_paper_content(self, session: aiohttp.ClientSession, paper_id: str) -> Optional[str]:
-    #     """
-    #     Asynchronously retrieves the full content of a specific paper.
-
-    #     Args:
-    #         session (aiohttp.ClientSession): The aiohttp session to use for requests
-    #         paper_id (str): The ID of the paper
-
-    #     Returns:
-    #         Optional[str]: The full content of the paper, or None if not found
-    #     """
-    #     # Note: The current API response doesn't seem to include full paper content.
-    #     # This method is kept for potential future use or if the API is updated to include full content.
-    #     self.logger.warning(f"Full content retrieval is not supported for paper {paper_id}")
-    #     return None
-
-if __name__ == "__main__":
-    async def main():
-        huggingface_api = HuggingFaceAPI()
-        await huggingface_api.fetch_daily_papers()
+# if __name__ == "__main__":
+#     async def main():
+#         huggingface_api = HuggingFaceAPI()
+#         await huggingface_api.fetch_daily_papers()
         
-        # Print the first paper's data as an example
-        if huggingface_api.papers_data:
-            print(huggingface_api.papers_data[0])
-        else:
-            print("No papers fetched.")
+#         # Print the first paper's data as an example
+#         if huggingface_api.papers_data:
+#             print(huggingface_api.papers_data[0])
+#         else:
+#             print("No papers fetched.")
 
-    asyncio.run(main())
+#     asyncio.run(main())

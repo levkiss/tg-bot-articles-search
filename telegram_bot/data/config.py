@@ -18,11 +18,11 @@ OPENAI_API_KEY: str = env.str("OPENAI_API_KEY")
 
 LOGGING_LEVEL: int = env.int("LOGGING_LEVEL", 10)
 
-POSTGRES_HOST: str = env.str("POSTGRES_HOST")
-PG_PORT: int = env.int("PG_PORT")
-POSTGRES_USER: str = env.str("POSTGRES_USER")
-POSTGRES_PASSWORD: str = env.str("POSTGRES_PASSWORD")
-POSTGRES_DB: str = env.str("POSTGRES_DB")
+POSTGRES_HOST: str = env.str("POSTGRES_HOST", "localhost")
+POSTGRES_PORT: int = env.int("POSTGRES_PORT", 5432)
+POSTGRES_USER: str = env.str("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD: str = env.str("POSTGRES_PASSWORD", "postgres")
+POSTGRES_DB: str = env.str("POSTGRES_DB", "papers_db")
 
 FSM_HOST: str = env.str("FSM_HOST")
 FSM_PORT: int = env.int("FSM_PORT")

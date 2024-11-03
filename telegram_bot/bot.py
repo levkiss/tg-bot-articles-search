@@ -8,7 +8,6 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.telegram import TelegramAPIServer
 from aiogram.filters import CommandStart, Command
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.redis import DefaultKeyBuilder, RedisStorage
 from aiohttp import web
 from aiogram_dialog import setup_dialogs
@@ -17,19 +16,13 @@ from redis.asyncio import Redis
 from telegram_bot import handlers, utils, web_handlers
 from telegram_bot.data import config
 from telegram_bot.middlewares import StructLoggingMiddleware
-
-# from telegram_bot.handlers.article_search import setup_article_handlers
+from telegram_bot.states.article import ArticleSG
 
 if TYPE_CHECKING:
     import asyncpg as asyncpg
     import redis
     import structlog
     from aiogram.client.session.aiohttp import AiohttpSession
-
-
-class Form(StatesGroup):
-    name = State()
-    language = State()
 
 
 async def create_db_connections(dp: Dispatcher) -> None:
@@ -40,7 +33,7 @@ async def create_db_connections(dp: Dispatcher) -> None:
         db_pool = await utils.connect_to_services.wait_postgres(
             logger=dp["db_logger"],
             host=config.POSTGRES_HOST,
-            port=config.PG_PORT,
+            port=config.POSTGRES_PORT,
             user=config.POSTGRES_USER,
             password=config.POSTGRES_PASSWORD,
             database=config.POSTGRES_DB,
@@ -106,7 +99,7 @@ def setup_handlers(dp: Dispatcher) -> None:
     # dp.include_router(handlers.user.prepare_router())
     # dp.message.register(start_command, CommandStart())
     # dp.message.register(articles_command, Command("articles"))
-    dp.include_router(handlers.article_search.setup_article_handlers())
+    dp.include_router(handlers.articles.setup_article_handlers())
     setup_dialogs(dp)
 
 

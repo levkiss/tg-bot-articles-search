@@ -2,6 +2,6 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class ArticleSG(StatesGroup):
-    main = State()
-    abstract = State()
-    summary = State()
+    language = State()
+    main_english = State()
+    main_russian = State()
