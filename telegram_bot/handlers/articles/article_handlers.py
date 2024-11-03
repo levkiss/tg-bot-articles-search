@@ -40,8 +40,7 @@ async def language_selected(c: CallbackQuery, button: Button, manager: DialogMan
     
     await c.answer()
     print(f"Language selected: {language}")
-    # Switch to appropriate state based on language
-    await manager.switch_to(ArticleSG.main_russian if language == "ru" else ArticleSG.main_english)
+    await manager.switch_to(ArticleSG.main_english if language == "en" else ArticleSG.main_russian)
 
 async def get_article_by_index(index: int) -> Dict[str, Any]:
     """
@@ -109,10 +108,7 @@ async def previous_article(c: CallbackQuery, b: Button, dialog_manager: DialogMa
     index = dialog_manager.dialog_data.get("index", 0)
     if state.articles:
         dialog_manager.dialog_data["index"] = index - 1 if index > 0 else len(state.articles) - 1
-    # Switch to appropriate state based on current language
-    await dialog_manager.switch_to(
-        ArticleSG.main_russian if state.current_language == "ru" else ArticleSG.main_english
-    )
+    await dialog_manager.switch_to(ArticleSG.main_english if state.current_language == "en" else ArticleSG.main_russian)
 
 async def next_article(c: CallbackQuery, b: Button, dialog_manager: DialogManager) -> None:
     """
@@ -126,7 +122,4 @@ async def next_article(c: CallbackQuery, b: Button, dialog_manager: DialogManage
     index = dialog_manager.dialog_data.get("index", 0)
     if state.articles:
         dialog_manager.dialog_data["index"] = index + 1 if index < len(state.articles) - 1 else 0
-    # Switch to appropriate state based on current language
-    await dialog_manager.switch_to(
-        ArticleSG.main_russian if state.current_language == "ru" else ArticleSG.main_english
-    )
+    await dialog_manager.switch_to(ArticleSG.main_english if state.current_language == "en" else ArticleSG.main_russian)
