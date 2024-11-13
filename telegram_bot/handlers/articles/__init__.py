@@ -1,8 +1,8 @@
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram_dialog import setup_dialogs
 
-from .article_dialog import dialog, start
+from .article_dialog import dialog, start, search_article, set_language
 
 def setup_article_handlers() -> Router:
     """
@@ -15,5 +15,7 @@ def setup_article_handlers() -> Router:
     router = Router()
     router.include_router(dialog)
     router.message.register(start, CommandStart())
+    router.message.register(search_article, Command("new_papers"))
+    router.message.register(set_language, Command("language_selection"))
     setup_dialogs(router)
     return router

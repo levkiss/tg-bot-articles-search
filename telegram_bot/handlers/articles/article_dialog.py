@@ -28,7 +28,7 @@ dialog = Dialog(
             Button(Const("◀️ Previous article"), id="previous_article", on_click=previous_article),
             Button(Const("Next article ▶️"), id="next_article", on_click=next_article),
         ),
-        Url(Format("Link to article"), Format("{url}"), id="url"),
+        Url(text=Const("Link to article"), url=Format("{url}"), id="url"),
         state=ArticleSG.main_english,
         getter=actions,
     ),
@@ -38,7 +38,7 @@ dialog = Dialog(
             Button(Const("◀️ Предыдущая статья"), id="previous_article", on_click=previous_article),
             Button(Const("Следующая статья ▶️"), id="next_article", on_click=next_article),
         ),
-        Url(Format("Ссылка на статью"), Format("{url}"), id="url"),
+        Url(text=Const("Ссылка на статью"), url=Format("{url}"), id="url"),
         state=ArticleSG.main_russian,
         getter=actions,
     )
@@ -52,4 +52,26 @@ async def start(message: Message, dialog_manager: DialogManager) -> None:
     Returns:
         None
     """
+    await dialog_manager.start(ArticleSG.language, mode=StartMode.RESET_STACK)
+
+async def search_article(message: Message, dialog_manager: DialogManager) -> None:
+    """
+    Handler for /search_article command
+    Args:
+        message (Message): Incoming message
+        dialog_manager (DialogManager): Dialog manager instance
+    """
+    # Start from main window based on current language
+    current_lang = dialog_manager.dialog_data.get("language", "en")
+    state = ArticleSG.main_english if current_lang == "en" else ArticleSG.main_russian
+    await dialog_manager.start(state, mode=StartMode.RESET_STACK)
+
+async def set_language(message: Message, dialog_manager: DialogManager) -> None:
+    """
+    Handler for /set_language command
+    Args:
+        message (Message): Incoming message
+        dialog_manager (DialogManager): Dialog manager instance
+    """
+    # Start from language selection window
     await dialog_manager.start(ArticleSG.language, mode=StartMode.RESET_STACK)
